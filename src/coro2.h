@@ -379,6 +379,7 @@ public:
     }
 
     ~promise_type() {
+      printf(">>> ");
       COROTEST_ASYNC_GENERATOR_PRINTFUNC
     }
 #endif
@@ -398,19 +399,19 @@ public:
 
 #if COROTEST_DEBUG_ASYNC_GENERATOR
     iterator() noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: iterator()\n", index_);
     }
 #else
     iterator() noexcept = default;
 #endif
 
     iterator(handle_type& handle) noexcept : handle_(std::addressof(handle)) {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: iterator(handle_type& handle)\n", index_);
     }
 
 #if COROTEST_DEBUG_ASYNC_GENERATOR
     ~iterator() {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: ~iterator()\n", index_);
       if (handle_) {
         handle_->destroy();
       }
@@ -418,7 +419,7 @@ public:
 #endif
 
     iterator& operator++() noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: operator++()\n", index_);
       handle_->resume();
       if (handle_->done()) {
         handle_->destroy();
@@ -430,33 +431,32 @@ public:
     iterator operator++(int) = delete;
 
     bool operator==(const iterator& other) const noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: operator==(%d)\n", index_, other.index_);
       return handle_ == other.handle_;
     }
 
     bool operator!=(const iterator& other) const noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
-      printf("local %llu, other %llu\n", reinterpret_cast<unsigned long long>(handle_), reinterpret_cast<unsigned long long>(other.handle_));
+      printf("ITERATOR %d: operator!=(%d)\n", index_, other.index_);
       return handle_ != other.handle_;
     }
 
     reference operator*() noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: operator*()\n", index_);
       return *handle_->promise().value_;
     }
 
     pointer operator->() noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: operator->()\n", index_);
       return handle_->promise().value_;
     }
 
     bool await_ready() noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: await_ready()\n", index_);
       return handle_->promise().value_ != nullptr;
     }
 
     void await_suspend(coroutine_handle<> consumer) noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
+      printf("ITERATOR %d: await_suspend(coroutine_handle<> consumer)\n", index_);
       //if (await_ready()) {
       //  // Resume the consumer if a value is ready.
       //  puts("RESUMING CONSUMER");
@@ -468,12 +468,19 @@ public:
       //}
     }
 
-    iterator await_resume() noexcept {
-      COROTEST_ASYNC_GENERATOR_PRINTFUNC
-      return { *std::exchange(handle_, nullptr) };
+    iterator& await_resume() noexcept {
+      printf("ITERATOR %d: await_resume()\n", index_);
+      //auto handle = std::exchange(handle_, nullptr);
+      return *this;
     }
 
     handle_type* handle_ = nullptr;
+
+    static int iterator_index() noexcept {
+      static int index = 0;
+      return index++;
+    }
+    int index_ = iterator_index();
   };
 
   async_generator(promise_type& promise) noexcept : handle_(handle_type::from_promise(promise)) {
@@ -486,9 +493,9 @@ public:
   }
 #endif
 
-  iterator begin() noexcept {
+  iterator& begin() noexcept {
     COROTEST_ASYNC_GENERATOR_PRINTFUNC
-    return { handle_ };
+    return iterator_;
   }
 
   iterator end() noexcept {
@@ -498,6 +505,7 @@ public:
 
 private:
   handle_type handle_ = nullptr;
+  iterator iterator_ = { handle_ };
 };
 
 // ================================================================================================
