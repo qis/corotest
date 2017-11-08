@@ -24,12 +24,12 @@ public:
       return { *this };
     }
 
-    constexpr suspend_never initial_suspend() noexcept {
-      return {};
+    constexpr auto initial_suspend() noexcept {
+      return suspend_never{};
     }
 
-    constexpr suspend_never final_suspend() noexcept {
-      return {};
+    constexpr auto final_suspend() noexcept {
+      return suspend_never{};
     }
 
     constexpr void return_void() noexcept {
@@ -59,17 +59,18 @@ public:
       return { *this };
     }
 
-    constexpr suspend_never initial_suspend() noexcept {
-      return {};
+    constexpr auto initial_suspend() noexcept {
+      return suspend_never{};
     }
 
-    constexpr suspend_never final_suspend() noexcept {
-      return {};
+    constexpr auto final_suspend() noexcept {
+      return suspend_never{};
     }
 
     void return_value(T value) noexcept {
       value_ = std::move(value);
       if (consumer_) {
+        // Resume the consumer if it is is suspended.
         consumer_.resume();
       }
     }
@@ -93,8 +94,10 @@ public:
 
   void await_suspend(coroutine_handle<> consumer) noexcept {
     if (await_ready()) {
+      // Resume the consumer if a value is ready.
       consumer.resume();
     } else {
+      // Suspend the consumer and let promise_type::return_value() resume it.
       handle_.promise().consumer_ = consumer;
     }
   }
@@ -118,20 +121,25 @@ public:
     }
 
     constexpr auto initial_suspend() noexcept {
+      // Advance directly to the first yield_value(T&) call.
       return suspend_never{};
     }
 
     constexpr auto final_suspend() noexcept {
+      // Keep this promise alive after the last coroutine handle resume() call
+      // so that the coroutine handle can be checked for it's done() state.
       return suspend_always{};
     }
 
     auto yield_value(T& value) noexcept {
       value_ = std::addressof(value);
+      // Allow the caller to do something with the yielded value.
       return suspend_always{};
     }
 
     auto return_void() noexcept {
       value_ = nullptr;
+      // Advance directly to the final_suspend() call.
       return suspend_never{};
     }
 
@@ -158,6 +166,7 @@ public:
 
     ~iterator() {
       if (handle_) {
+        // Destroy the promise in case the range was not iterated until the end.
         handle_.destroy();
       }
     }
@@ -165,6 +174,8 @@ public:
     iterator& operator++() noexcept {
       handle_.resume();
       if (handle_.done()) {
+        // Since final_suspend() of the promise returns suspend_always, we have
+        // to destroy it manually.
         std::exchange(handle_, nullptr).destroy();
       }
       return *this;

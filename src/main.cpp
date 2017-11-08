@@ -59,11 +59,11 @@ task test() {
     i = e;
   }
 
-  std::cout << "== async_generator_test ==" << std::endl;
-  for co_await(auto& e : async_generator_test(i)) {
-    std::cout << e << std::endl;
-    i = e;
-  }
+  //std::cout << "== async_generator_test ==" << std::endl;
+  //for co_await(auto& e : async_generator_test(i)) {
+  //  std::cout << e << std::endl;
+  //  i = e;
+  //}
 
   std::cout << "== done ==" << std::endl;
   co_return;
