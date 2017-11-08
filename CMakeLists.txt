@@ -49,7 +49,10 @@ endif()
 
 target_include_directories(corotest PRIVATE third_party/asio/asio/include)
 target_compile_definitions(corotest PRIVATE ASIO_STANDALONE=1)
-target_compile_options(corotest PRIVATE -Wno-sign-conversion -Wno-shorten-64-to-32)
+
+if(NOT MSVC)
+  target_compile_options(corotest PRIVATE -Wno-sign-conversion -Wno-shorten-64-to-32)
+endif()
 
 if(MSVC)
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
