@@ -1,19 +1,10 @@
 # CoroTest
-Dependencies: Visual Studio 2017 or LLVM >5.0.0, Boost.Asio, Boost.System
-
-## MSVC
-After installing Visual Studio 2017, you can install Boost using [vcpkg](https://github.com/Microsoft/vcpkg/).
-
-The `solution.cmd` script requires that the `VCPKG` environment variable is set to the vcpkg cmake file
-(e.g. `C:/Libraries/vcpkg/scripts/buildsystems/vcpkg.cmake`) and the `VCPKG_DEFAULT_TRIPLET` environment
-variable is set to the default vcpkg triplet (e.g. `x64-windows`).
+Dependencies: Visual Studio 2017 or LLVM >5.0.0
 
 ## LLVM
 If you're on Ubuntu 16.04 or in Windows 10 WSL, just install LLVM from sources using this guide:
 
 <https://github.com/qis/windows-10/blob/master/llvm.md>
-
-You can install the Boost libraries by executing `sudo apt install libboost-all-dev`.
 
 ## LLVM Output (Broken)
 This is what you get if you run `make run` in WSL.

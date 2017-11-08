@@ -47,8 +47,9 @@ if(WIN32)
   target_link_libraries(corotest PRIVATE ws2_32 mswsock)
 endif()
 
-find_package(Boost REQUIRED COMPONENTS system)
-target_link_libraries(corotest PRIVATE Boost::boost Boost::system)
+target_include_directories(corotest PRIVATE third_party/asio/asio/include)
+target_compile_definitions(corotest PRIVATE ASIO_STANDALONE=1)
+target_compile_options(corotest PRIVATE -Wno-sign-conversion -Wno-shorten-64-to-32)
 
 if(MSVC)
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)

@@ -1,9 +1,9 @@
 #include "coro.h"
-#include <boost/asio/io_service.hpp>
+#include <asio/io_service.hpp>
 #include <system_error>
 #include <iostream>
 
-boost::asio::io_service service;
+asio::io_service service;
 
 class event {
 public:
