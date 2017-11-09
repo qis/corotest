@@ -276,9 +276,9 @@ struct async_generator {
   }
 
   async_generator& operator=(async_generator&& other) noexcept {
-    if (&other != this) {
-      handle_ = std::exchange(other.handle_, nullptr);
-    }
+    //if (&other != this) {
+    //  handle_ = std::exchange(other.handle_, nullptr);
+    //}
     return *this;
   }
 
