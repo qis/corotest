@@ -295,9 +295,12 @@ struct async_generator {
   }
 
   ~async_generator() {
-    //if (auto handle = std::exchange(handle_, nullptr)) {
-    //  handle.destroy();
-    //}
+    if (auto handle = std::exchange(handle_, nullptr)) {
+      // This seems to solve the promise leak caused by suspend_never promise_type::final_suspend().
+      if (handle.promise().await_consumer_handle_) {
+        handle.destroy();
+      }
+    }
   }
 
   await_iterator<T, promise_type> begin() noexcept {
