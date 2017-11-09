@@ -8,5 +8,5 @@ submodule and should be cloned with `git clone --recursive`.
 ## Problem
 Currently the `for co_await(` loop in `main.cpp` line 70 works as it should.
 
-If the for loop is manually aborted with `break` or `co_return` before it can\
+If the for loop is manually aborted with `break` or `co_return` before it can
 finish, then the `async_generator` promise is leaked.
