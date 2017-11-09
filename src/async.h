@@ -231,7 +231,7 @@ private:
 
 // ================================================================================================
 
-#ifdef COROTEST_USE_CPPCORO
+#if COROTEST_USE_CPPCORO
 #include <cppcoro/async_generator.hpp>
 
 using cppcoro::async_generator;
