@@ -379,7 +379,7 @@ public:
     }
 
     ~promise_type() {
-      printf(">>> ");
+      printf(">>> ");  // this should not happen until the end
       COROTEST_ASYNC_GENERATOR_PRINTFUNC
     }
 #endif
@@ -411,6 +411,7 @@ public:
 
 #if COROTEST_DEBUG_ASYNC_GENERATOR
     ~iterator() {
+      printf(">>> ");  // this should not happen until the end
       printf("ITERATOR %d: ~iterator()\n", index_);
       if (handle_) {
         handle_->destroy();
