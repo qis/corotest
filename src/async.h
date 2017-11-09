@@ -1,10 +1,10 @@
 #pragma once
-//#include <cppcoro/async_generator.hpp>
 #include <experimental/coroutine>
 #include <optional>
 #include <utility>
-
 #include <cstdio>
+
+#define COROTEST_USE_CPPCORO 0
 
 using std::experimental::coroutine_handle;
 using std::experimental::suspend_always;
@@ -231,7 +231,8 @@ private:
 
 // ================================================================================================
 
-#if 0
+#ifdef COROTEST_USE_CPPCORO
+#include <cppcoro/async_generator.hpp>
 
 using cppcoro::async_generator;
 
