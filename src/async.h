@@ -146,6 +146,10 @@ public:
       std::abort();
     }
 
+    ~promise_type() {
+      puts("generator::promise_type::~promise_type()");
+    }
+
     T* value_ = nullptr;
   };
 
