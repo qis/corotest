@@ -15,7 +15,7 @@ class task {
 public:
   struct promise_type {
     task get_return_object() noexcept {
-      return {};
+      return { *this };
     }
 
     constexpr auto initial_suspend() noexcept {
@@ -33,6 +33,14 @@ public:
       std::abort();
     }
   };
+
+  using handle_type = coroutine_handle<promise_type>;
+
+  task(promise_type& promise) noexcept : handle_(handle_type::from_promise(promise)) {
+  }
+
+private:
+  handle_type handle_ = nullptr;
 };
 
 // ================================================================================================
@@ -50,7 +58,7 @@ public:
     }
 
     constexpr auto final_suspend() noexcept {
-      return suspend_always{};
+      return suspend_never{};
     }
 
     void return_value(T value) noexcept {
@@ -87,9 +95,9 @@ public:
   }
 
   ~async() {
-    if (auto handle = std::exchange(handle_, nullptr)) {
-      handle.destroy();
-    }
+    //if (auto handle = std::exchange(handle_, nullptr)) {
+    //  handle.destroy();
+    //}
   }
 
   bool await_ready() noexcept {
@@ -239,7 +247,7 @@ struct async_generator {
     }
 
     constexpr auto final_suspend() noexcept {
-      return suspend_always{};
+      return suspend_never{};
     }
 
     await_consumer<T, promise_type> yield_value(T& value) noexcept {
@@ -276,16 +284,16 @@ struct async_generator {
   }
 
   async_generator& operator=(async_generator&& other) noexcept {
-    //if (&other != this) {
-    //  handle_ = std::exchange(other.handle_, nullptr);
-    //}
+    if (&other != this) {
+      handle_ = std::exchange(other.handle_, nullptr);
+    }
     return *this;
   }
 
   ~async_generator() {
-    if (auto handle = std::exchange(handle_, nullptr)) {
-      handle.destroy();
-    }
+    //if (auto handle = std::exchange(handle_, nullptr)) {
+    //  handle.destroy();
+    //}
   }
 
   await_iterator<T, promise_type> begin() noexcept {
