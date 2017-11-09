@@ -46,7 +46,7 @@ generator<int> generator_test(int i) {
 }
 
 async_generator<int> async_generator_test(int i) {
-  i++;
+  i = co_await async_test(i);
   co_yield i;
   i = co_await async_test(i);
   co_yield i;
@@ -68,6 +68,7 @@ task test() {
   for co_await(auto& e : async_generator_test(i)) {
     std::cout << e << std::endl;
     i = e;
+    //break;  // this will leak the async_generator promise
   }
 
   std::cout << "== done ==" << std::endl;
