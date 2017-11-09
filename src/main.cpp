@@ -1,4 +1,4 @@
-#include "coro.h"
+#include "async.h"
 #include <asio/io_service.hpp>
 #include <system_error>
 #include <iostream>
@@ -8,20 +8,24 @@ asio::io_service service;
 class event {
 public:
   using handle_type = std::experimental::coroutine_handle<>;
-  event(int value) : value_(value) {
+  event(int value) noexcept : value_(value) {
   }
-  ~event() = default;
-  bool await_ready() {
+  ~event() {
+    handle_ = nullptr;
+  }
+  constexpr bool await_ready() noexcept {
     return false;
   }
   void await_suspend(handle_type handle) {
     handle_ = handle;
     service.post([this]() {
       value_++;
-      handle_.resume();
+      if (handle_) {
+        handle_.resume();
+      }
     });
   }
-  auto await_resume() {
+  auto await_resume() noexcept {
     return value_;
   }
 private:
