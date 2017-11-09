@@ -48,6 +48,7 @@ if(WIN32)
   target_link_libraries(corotest PRIVATE ws2_32 mswsock)
 endif()
 
+target_include_directories(corotest PRIVATE third_party/cppcoro/include)
 target_include_directories(corotest PRIVATE third_party/asio/asio/include)
 target_compile_definitions(corotest PRIVATE ASIO_STANDALONE=1)
 

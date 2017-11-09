@@ -1,4 +1,5 @@
 #pragma once
+//#include <cppcoro/async_generator.hpp>
 #include <experimental/coroutine>
 #include <optional>
 #include <utility>
@@ -230,6 +231,12 @@ private:
 
 // ================================================================================================
 
+#if 0
+
+using cppcoro::async_generator;
+
+#else
+
 template <typename T, typename GeneratorPromise>
 struct await_iterator;
 
@@ -443,3 +450,4 @@ struct async_iterator {
 
   coroutine_handle<GeneratorPromise> generator_handle_ = nullptr;
 };
+#endif
