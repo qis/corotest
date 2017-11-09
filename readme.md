@@ -1,5 +1,5 @@
 # CoroTest
-Dependencies: Visual Studio 2017 or LLVM >5.0.0
+Dependencies: Visual Studio 2017 or LLVM >= 5.0.0
 
 ## Submodules
 This repo contains a [third_party/asio](https://github.com/chriskohlhoff/asio/)
