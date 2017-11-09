@@ -1,4 +1,4 @@
-#include "coro2.h"
+#include "coro.h"
 #include <asio/io_service.hpp>
 #include <system_error>
 #include <iostream>
@@ -44,32 +44,23 @@ generator<int> generator_test(int i) {
 async_generator<int> async_generator_test(int i) {
   i++;
   co_yield i;
-  i++;  // = co_await async_test(i);
+  i = co_await async_test(i);
   co_yield i;
 }
 
 task test() {
   auto i = 0;
-  //std::cout << "== async_test ==" << std::endl;
-  //i = co_await async_test(i);
-  //std::cout << i << std::endl;
+  std::cout << "== async_test ==" << std::endl;
+  i = co_await async_test(i);
+  std::cout << i << std::endl;
 
-  //std::cout << "== generator_test ==" << std::endl;
-  //for (auto& e : generator_test(i)) {
-  //  std::cout << e << std::endl;
-  //  i = e;
-  //}
+  std::cout << "== generator_test ==" << std::endl;
+  for (auto& e : generator_test(i)) {
+    std::cout << e << std::endl;
+    i = e;
+  }
 
   std::cout << "== async_generator_test ==" << std::endl;
-  //auto range = async_generator_test(i);
-  //auto it = co_await range.begin();
-  //auto end = range.end();
-  //while (it != end) {
-  //  auto& e = *it;
-  //  std::cout << e << std::endl;
-  //  co_await ++it;
-  //}
-
   for co_await(auto& e : async_generator_test(i)) {
     std::cout << e << std::endl;
     i = e;

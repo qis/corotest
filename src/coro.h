@@ -2,143 +2,93 @@
 #include <experimental/coroutine>
 #include <optional>
 #include <utility>
-#include <cstdio>
-
-#if 1
-#define print(x) puts(x)
-#else
-#define print(x)
-#endif
 
 using std::experimental::coroutine_handle;
 using std::experimental::suspend_always;
 using std::experimental::suspend_never;
 
+// ================================================================================================
+
 class task {
 public:
   struct promise_type {
-    promise_type& get_return_object() {
-      print("promise_type& task::promise_type::get_return_object()");
-      return *this;
+    task get_return_object() noexcept {
+      return { *this };
     }
 
-    suspend_never initial_suspend() {
-      print("suspend_never task::promise_type::initial_suspend()");
-      return {};
+    constexpr auto initial_suspend() noexcept {
+      return suspend_never{};
     }
 
-    suspend_never final_suspend() {
-      print("suspend_never task::promise_type::final_suspend()");
-      return {};
+    constexpr auto final_suspend() noexcept {
+      return suspend_never{};
     }
 
-    void return_void() {
-      print("void task::promise_type::return_void()");
+    constexpr void return_void() noexcept {
     }
 
-    void unhandled_exception() {
+    void unhandled_exception() noexcept {
       std::abort();
-    }
-
-    promise_type() {
-      print("task::promise_type::promise_type()");
-    }
-
-    ~promise_type() {
-      print("task::promise_type::~promise_type()");
     }
   };
 
-  task(promise_type& promise) {
-    print("task::task(promise_type& promise)");
+  using handle_type = coroutine_handle<promise_type>;
+
+  task(promise_type& promise) noexcept : handle_(handle_type::from_promise(promise)) {
   }
 
-  ~task() {
-    print("task::~task()");  // the promise remains until the coroutine returns
-  }
+private:
+  handle_type handle_ = nullptr;
 };
+
+// ================================================================================================
 
 template <typename T>
 class async {
 public:
   struct promise_type {
-    promise_type& get_return_object() {
-      print("promise_type& async::promise_type::get_return_object()");
-      return *this;
+    async get_return_object() noexcept {
+      return { *this };
     }
 
-    suspend_never initial_suspend() {
-      print("suspend_never async::promise_type::initial_suspend()");
-      return {};
+    constexpr auto initial_suspend() noexcept {
+      return suspend_never{};
     }
 
-    suspend_never final_suspend() {
-      print("suspend_never async::promise_type::final_suspend()");
-      return {};
+    constexpr auto final_suspend() noexcept {
+      return suspend_never{};
     }
 
-    void return_value(T value) {
-      print("void async::promise_type::return_value(T value)");
+    void return_value(T value) noexcept {
       value_ = std::move(value);
-      if (handle_) {
-        handle_.resume();
+      if (consumer_) {
+        // Resume the consumer if it is suspended.
+        consumer_.resume();
       }
     }
 
-    void unhandled_exception() {
+    void unhandled_exception() noexcept {
       std::abort();
     }
 
-    promise_type() {
-      print("async::promise_type::promise_type()");
-    }
-
-    ~promise_type() {
-      print("async::promise_type::~promise_type()");
-    }
-
     std::optional<T> value_;
-    coroutine_handle<> handle_ = nullptr;
+    coroutine_handle<> consumer_ = nullptr;
   };
 
-  async(promise_type& promise) : handle_(coroutine_handle<promise_type>::from_promise(promise)) {
-    print("async::async(promise_type& promise)");
+  using handle_type = coroutine_handle<promise_type>;
+
+  async(promise_type& promise) noexcept : handle_(handle_type::from_promise(promise)) {
   }
 
-  async() {
-    print("async::async()");
-  }
-
-  async(async&& other) : handle_(std::exchange(other.handle_, nullptr)) {
-    print("async::async(async&& other)");
-  }
-
-  async& operator=(async&& other) {
-    print("async& async::operator=(async&& other)");
-    if (&other != this) {
-      handle_ = std::exchange(other.handle_, nullptr);
-    }
-  }
-
-  ~async() {
-    print("async::~async()");
-  }
-
-  bool await_ready() {
-    print("bool async::await_ready()");
+  bool await_ready() noexcept {
     return !!handle_.promise().value_;
   }
 
-  void await_suspend(coroutine_handle<> consumer) {
-    print("void async::await_suspend(coroutine_handle<> consumer)");
-    handle_.promise().handle_ = consumer;
-    if (await_ready()) {
-      handle_.promise().handle_.resume();
-    }
+  void await_suspend(coroutine_handle<> consumer) noexcept {
+    handle_.promise().consumer_ = consumer;
   }
 
-  auto& await_resume() {
-    print("auto& async::await_resume()");
+  auto& await_resume() noexcept {
     return *handle_.promise().value_;
   }
 
@@ -146,282 +96,232 @@ private:
   coroutine_handle<promise_type> handle_ = nullptr;
 };
 
-//
-// This async_generator is a modified version of https://github.com/kirkshoop/await
-//
-
-template <typename T, typename generator_promise>
-struct await_iterator;
-
-template <typename T, typename generator_promise>
-struct async_iterator;
-
-template <typename T, typename generator_promise>
-struct await_consumer;
+// ================================================================================================
 
 template <typename T>
-class async_generator {
+class generator {
 public:
   struct promise_type {
-    promise_type& get_return_object() {
-      print("promise_type& async_generator::promise_type::get_return_object()");
-      return *this;
+    generator get_return_object() noexcept {
+      return { *this };
     }
 
-    suspend_always initial_suspend() {
-      print("suspend_always async_generator::promise_type::initial_suspend()");
-      return {};
+    constexpr auto initial_suspend() noexcept {
+      return suspend_never{};
     }
 
-    suspend_always final_suspend() {
-      print("suspend_always async_generator::promise_type::final_suspend()");
-      return {};
+    constexpr auto final_suspend() noexcept {
+      return suspend_always{};
     }
 
-    await_consumer<T, promise_type> yield_value(T& value) {
-      print("await_consumer<T, promise_type> async_generator::promise_type::yield_value(T& value)");
+    constexpr auto return_void() noexcept {
+      return suspend_never{};
+    }
+
+    auto yield_value(T& value) noexcept {
       value_ = std::addressof(value);
-      return { coroutine_handle<promise_type>::from_promise(*this) };
+      return suspend_always{};
     }
 
-    void return_void() {
-      print("void async_generator::promise_type::return_void()");
-      if (auto await_iterator = std::exchange(await_iterator_, nullptr)) {
-        await_iterator.resume();
-      }
-    }
-
-    void unhandled_exception() {
-      print("void async_generator::promise_type::unhandled_exception()");
+    void unhandled_exception() noexcept {
       std::abort();
     }
 
-    promise_type() {
-      print("async_generator::promise_type::promise_type()");
-    }
-
-    ~promise_type() {
-      print("async_generator::promise_type::~promise_type()");
-    }
-
-    coroutine_handle<> await_iterator_ = nullptr;
-    coroutine_handle<> await_consumer_ = nullptr;
     T* value_ = nullptr;
   };
 
-  await_iterator<T, promise_type> begin() {
-    print("await_iterator<T, promise_type> async_generator::begin()");
-    return handle_;
-  }
+  using handle_type = coroutine_handle<promise_type>;
 
-  async_iterator<T, promise_type> end() {
-    print("await_iterator<T, promise_type> async_generator::end()");
-    return { nullptr };
-  }
+  struct iterator {
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
 
-  async_generator(promise_type& promise) : handle_(coroutine_handle<promise_type>::from_promise(promise)) {
-    print("async_generator::async_generator(promise_type& promise)");
-  }
+    iterator() noexcept = default;
 
-  async_generator() {
-    print("async_generator::async_generator()");
-  }
-
-  async_generator(async_generator&& other) : handle_(std::exchange(other.handle_, nullptr)) {
-    print("async_generator::async_generator(async_generator&& other)");
-  }
-
-  async_generator& operator=(async_generator&& other) {
-    print("async_generator& async_generator::operator=(async_generator&& other)");
-    if (&other != this) {
-      if (handle_) {
-        handle_.destroy();
-      }
-      handle_ = std::exchange(other.handle_, nullptr);
+    iterator(handle_type handle) noexcept : handle_(handle) {
     }
+
+    iterator& operator++() noexcept {
+      handle_.promise().value_ = nullptr;
+      handle_.resume();
+      if (handle_.done()) {
+        handle_ = nullptr;
+      }
+      return *this;
+    }
+
+    iterator operator++(int) = delete;
+
+    bool operator==(const iterator& other) const noexcept {
+      return handle_ == other.handle_;
+    }
+
+    bool operator!=(const iterator& other) const noexcept {
+      return handle_ != other.handle_;
+    }
+
+    reference operator*() noexcept {
+      return *handle_.promise().value_;
+    }
+
+    pointer operator->() noexcept {
+      return handle_.promise().value_;
+    }
+
+    handle_type handle_ = nullptr;
+  };
+
+  generator(promise_type& promise) noexcept : handle_(handle_type::from_promise(promise)) {
   }
 
-  ~async_generator() {
-    print("async_generator::~async_generator()");
+  generator(generator&& other) noexcept : handle_(std::exchange(other.handle_, nullptr)) {
+  }
+
+  generator& operator=(generator&& other) noexcept {
+    handle_ = std::exchange(other.handle_, nullptr);
+    return *this;
+  }
+
+  ~generator() {
     if (handle_) {
       handle_.destroy();
     }
   }
 
+  iterator begin() noexcept {
+    return { handle_ };
+  }
+
+  iterator end() noexcept {
+    return {};
+  }
+
 private:
-  coroutine_handle<promise_type> handle_ = nullptr;
+  handle_type handle_ = nullptr;
 };
 
-template <typename T, typename GeneratorPromise>
-struct await_consumer {
-  await_consumer(coroutine_handle<GeneratorPromise> coro) : generator_coro_(coro) {
-    print("await_consumer::await_consumer(coroutine_handle<GeneratorPromise> coro)");
-  }
+// ================================================================================================
 
-  await_consumer() {
-    print("await_consumer::await_consumer()");
-  }
-
-  await_consumer(await_consumer&& other) : generator_coro_(std::exchange(other.generator_coro_, nullptr)) {
-    print("await_consumer::await_consumer(await_consumer&& other)");
-  }
-
-  await_consumer& operator=(await_consumer&& other) {
-    print("await_consumer& await_consumer::operator=(await_consumer&& other)");
-    if (&other != this) {
-      generator_coro_ = std::exchange(other.generator_coro_, nullptr);
+template <typename T>
+class async_generator {
+public:
+  struct promise_type {
+    async_generator get_return_object() noexcept {
+      return { *this };
     }
-    return *this;
-  }
 
-  ~await_consumer() {
-    print("await_consumer::~await_consumer()");
-  }
-
-  bool await_ready() {
-    print("bool await_consumer::await_ready()");
-    return false;
-  }
-
-  void await_suspend(coroutine_handle<> await_consumer) {
-    print("void await_consumer::await_suspend(coroutine_handle<> await_consumer)");
-    generator_coro_.promise().await_consumer_ = await_consumer;
-    if (auto await_iterator = std::exchange(generator_coro_.promise().await_iterator_, nullptr)) {
-      await_iterator.resume();
+    constexpr auto initial_suspend() noexcept {
+      return suspend_never{};
     }
-  }
 
-  void await_resume() {
-    print("void await_consumer::await_resume()");
-  }
-
-  coroutine_handle<GeneratorPromise> generator_coro_ = nullptr;
-};
-
-template <typename T, typename GeneratorPromise>
-struct await_iterator {
-  await_iterator(coroutine_handle<GeneratorPromise> coro) : generator_coro_(coro) {
-    print("await_iterator::await_iterator(coroutine_handle<GeneratorPromise> coro)");
-  }
-
-  // operator++ needs to update itself
-  await_iterator(async_iterator<T, GeneratorPromise>* it) : generator_coro_(it->generator_coro_), iterator_(it) {
-    print("await_iterator::await_iterator(async_iterator<T, GeneratorPromise>* it)");
-  }
-
-  await_iterator() {
-    print("await_iterator::await_iterator()");
-  }
-
-  await_iterator(await_iterator&& other) : generator_coro_(std::exchange(other.generator_coro_, nullptr)), iterator_(std::exchange(other.iterator_, nullptr)) {
-    print("await_iterator::await_iterator(await_iterator&& other)");
-  }
-
-  await_iterator& operator=(await_iterator&& other) {
-    print("await_iterator& await_iterator::operator=(await_iterator&& other)");
-    if (&other != this) {
-      generator_coro_ = std::exchange(other.generator_coro_, nullptr);
-      iterator_ = std::exchange(other.iterator_, nullptr);
+    constexpr auto final_suspend() noexcept {
+      return suspend_always{};
     }
-    return *this;
-  }
 
-  ~await_iterator() {
-    print("await_iterator::~await_iterator()");
-  }
-
-  bool await_ready() {
-    print("bool await_iterator::await_ready()");
-    return generator_coro_.promise().await_consumer_ && generator_coro_.promise().await_consumer_.done();
-  }
-
-  void await_suspend(coroutine_handle<> await_iterator) {
-    print("void await_iterator::await_suspend(coroutine_handle<> await_iterator)");
-    generator_coro_.promise().await_iterator_ = await_iterator;
-    if (auto await_consumer = std::exchange(generator_coro_.promise().await_consumer_, nullptr)) {
-      print("resume co_yield");
-      generator_coro_.promise().value_ = nullptr;
-      await_consumer.resume();
-    } else {
-      print("first resume");
-      generator_coro_.resume();
+    constexpr auto return_void() noexcept {
+      return suspend_never{};
     }
-  }
 
-  async_iterator<T, GeneratorPromise> await_resume() {
-    print("async_iterator<T, GeneratorPromise> await_iterator::await_resume()");
-    if (generator_coro_.done() || !generator_coro_.promise().value_) {
-      generator_coro_ = nullptr;
+    auto yield_value(T& value) noexcept {
+      value_ = std::addressof(value);
+      if (auto consumer = std::exchange(consumer_, nullptr)) {
+        consumer.resume();
+      }
+      return suspend_always{};
     }
-    if (iterator_) {
-      iterator_->generator_coro_ = generator_coro_;
-      return { *iterator_ };
-    }
-    return { generator_coro_ };
-  }
 
-  coroutine_handle<GeneratorPromise> generator_coro_ = nullptr;
-  async_iterator<T, GeneratorPromise>* iterator_ = nullptr;
-};
-
-template <typename T, typename GeneratorPromise>
-struct async_iterator {
-  using iterator_category = std::input_iterator_tag;
-  using difference_type = std::ptrdiff_t;
-  using value_type = T;
-  using pointer = T*;
-  using reference = T&;
-
-  async_iterator(std::nullptr_t) : generator_coro_(nullptr) {
-    print("async_iterator::async_iterator(std::nullptr_t)");
-  }
-
-  async_iterator(coroutine_handle<GeneratorPromise> coro) : generator_coro_(coro) {
-    print("async_iterator::async_iterator(coroutine_handle<GeneratorPromise> coro)");
-  }
-
-  ~async_iterator() {
-    print("async_iterator::~async_iterator()");
-  }
-
-  await_iterator<T, GeneratorPromise> operator++() {
-    print("await_iterator<T, GeneratorPromise> async_iterator::operator++()");
-    if (!generator_coro_) {
+    void unhandled_exception() noexcept {
       std::abort();
     }
-    return { this };
+
+    T* value_ = nullptr;
+    coroutine_handle<> consumer_ = nullptr;
+  };
+
+  using handle_type = coroutine_handle<promise_type>;
+
+  struct iterator {
+    using iterator_category = std::input_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = T;
+    using pointer = T*;
+    using reference = T&;
+
+    iterator() noexcept = default;
+
+    iterator(handle_type handle) noexcept : handle_(handle) {
+    }
+
+    iterator& operator++() noexcept {
+      handle_.promise().value_ = nullptr;
+      handle_.resume();
+      if (handle_.done()) {
+        handle_ = nullptr;
+      }
+      return *this;
+    }
+
+    iterator operator++(int) = delete;
+
+    bool operator==(const iterator& other) const noexcept {
+      return handle_ == other.handle_;
+    }
+
+    bool operator!=(const iterator& other) const noexcept {
+      return handle_ != other.handle_;
+    }
+
+    reference operator*() noexcept {
+      return *handle_.promise().value_;
+    }
+
+    pointer operator->() noexcept {
+      return handle_.promise().value_;
+    }
+
+    bool await_ready() noexcept {
+      return !handle_ || handle_.promise().value_ != nullptr;
+    }
+
+    void await_suspend(coroutine_handle<> consumer) noexcept {
+      handle_.promise().consumer_ = consumer;
+    }
+
+    iterator await_resume() noexcept {
+      return { handle_ };
+    }
+
+    handle_type handle_ = nullptr;
+  };
+
+  async_generator(promise_type& promise) noexcept : handle_(handle_type::from_promise(promise)) {
   }
 
-  // Generator iterator current_value is a reference to a temporary on the coroutine frame
-  // implementing postincrement will require storing a copy of the value in the iterator.
-  //
-  //   async_iterator operator++(int) {
-  //     auto result = *this;
-  //     ++(*this);
-  //     return result;
-  //   }
-  //
-  async_iterator operator++(int) = delete;
-
-  bool operator==(const async_iterator& other) const {
-    print("bool async_iterator::operator==(const async_iterator& other)");
-    return generator_coro_ == other.generator_coro_;
+  async_generator(async_generator&& other) noexcept : handle_(std::exchange(other.handle_, nullptr)) {
   }
 
-  bool operator!=(const async_iterator& other) const {
-    print("bool async_iterator::operator!=(const async_iterator& other)");
-    return generator_coro_ != other.generator_coro_;
+  async_generator& operator=(async_generator&& other) noexcept {
+    handle_ = std::exchange(other.handle_, nullptr);
+    return *this;
   }
 
-  reference operator*() {
-    print("reference async_iterator::operator*()");
-    return *generator_coro_.promise().value_;
+  ~async_generator() {
+    if (handle_) {
+      handle_.destroy();
+    }
   }
 
-  pointer operator->() {
-    print("pointer async_iterator::operator->()");
-    return std::addressof(generator_coro_.promise().value_);
+  iterator begin() noexcept {
+    return { handle_ };
   }
 
-  coroutine_handle<GeneratorPromise> generator_coro_ = nullptr;
+  iterator end() noexcept {
+    return {};
+  }
+
+private:
+  handle_type handle_ = nullptr;
 };
